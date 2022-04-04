@@ -1,14 +1,14 @@
+import pandas as pd
+
 from xgboost import XGBClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
-from models import Model
-
-import pandas as pd
-
 from tqdm import tqdm
+
+from models import Model
 
 names = [
     "Linear_SVM",
@@ -38,5 +38,6 @@ X = data.drop(columns=['Ab evasion'])
 y = data['Ab evasion']
 
 for name, clf in tqdm(zip(names, classifiers)):
-    mdl = Model(X, y, "/Volumes/GoogleDrive/Shared drives/Lab.Danielle/Projects/chronic_covid/stats", clf=clf, alias=name, fold_id='patient', target='Ab evasion')
+    mdl = Model(X, y, "/Volumes/GoogleDrive/Shared drives/Lab.Danielle/Projects/chronic_covid/stats", clf=clf,
+                alias=name, fold_id='patient', target='Ab evasion')
     mdl.classification_pipeline()

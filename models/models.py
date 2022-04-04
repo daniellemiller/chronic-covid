@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
 import os
-import pickle
+
+import numpy as np
+import shap
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 # ML packages
 from sklearn import metrics
@@ -12,7 +13,7 @@ from sklearn import metrics
 
 ##### Models interface ######
 
-class Model(object):
+class Model():
     def __init__(self, X, y, out_dir, clf=None, alias='CLF', fold_id='patient', target='Ab evasion'):
         self.X = X
         self.y = y
@@ -25,6 +26,8 @@ class Model(object):
         self.importances = None
         self.acc = None
         self.w_acc = None
+        self.test_shap = None
+        self.mdl_shap = None
 
 
     def model_fit(self, X_train, X_test, y_train):
@@ -47,8 +50,19 @@ class Model(object):
 
         return train_data.drop(columns=[target]), train_data[target], patient_data.drop(columns=[target]), patient_data[target]
 
+    def model_shap(self):
+        X = self.X.drop(columns=['patient'])
+        y = self.y
+        try:
+            _ = self.model_fit(X, X, y)
+            explainer = shap.TreeExplainer(self.clf)
+            shap_values = explainer.shap_values(X)
+            self.mdl_shap = shap_values
+        except:
+            return
+
     def split_and_classify(self):
-        reports, feature_importances = [], []
+        reports, feature_importances, list_test_shap_values= [], [], []
 
         for fold in self.folds:
             X_train, y_train, X_test, y_test = self.LOPOCV(patient=fold)
@@ -68,9 +82,22 @@ class Model(object):
 
             reports.append(stats)
             feature_importances.append(mdl_importances)
+            try:
+                explainer = shap.TreeExplainer(self.clf)
+                test_shap = explainer.shap_values(X_test)
+                list_test_shap_values.append(test_shap)
+            except:
+                continue
 
         self.report = pd.concat(reports)
         self.importances = pd.concat(feature_importances)
+
+        if list_test_shap_values != []:
+            shap_values_test = np.array(list_test_shap_values[0])
+            for i in range(1,len(self.folds)):
+                shap_values_test = np.concatenate((shap_values_test,np.array(list_test_shap_values[i])),axis=1)
+            self.test_shap = shap_values_test
+
         return self.report, self.importances
 
     def summarize_accuracy(self):
@@ -103,6 +130,33 @@ class Model(object):
             plt.xlabel('')
             plt.ylabel("Importance")
             plt.savefig(os.path.join(data_dir, 'importance.png'), dpi=300, bbox_inches='tight')
+            plt.clf()
+
+    def plot_shap_stats(self):
+        mdl_shape = self.mdl_shap
+        test_shap = self.test_shap
+        if mdl_shape is None or test_shap is None:
+            return
+        data_dir = os.path.join(self.out_dir, self.name)
+        os.makedirs(data_dir, exist_ok=True)
+        X = self.X.drop(columns=['patient'])
+
+        shap.summary_plot(mdl_shape[1], X, plot_type='bar', show=False)
+        plt.savefig(os.path.join(data_dir, f'{self.name}_shap_mean.png'), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        shap.summary_plot(mdl_shape[1], X, show=False)
+        plt.savefig(os.path.join(data_dir, f'{self.name}_shap.png'), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        shap.summary_plot(test_shap[1], X, plot_type='bar', show=False)
+        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap_mean.png'), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        shap.summary_plot(test_shap[1], X, show=False)
+        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap.png'), dpi=300, bbox_inches='tight')
+        plt.clf()
+
 
 
     def wrap_up(self):
@@ -121,5 +175,7 @@ class Model(object):
         self.split_and_classify()
         self.summarize_accuracy()
         self.plot_importance_bar()
+        self.model_shap()
+        self.plot_shap_stats()
         self.wrap_up()
 
