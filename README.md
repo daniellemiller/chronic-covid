@@ -6,7 +6,7 @@ This repository contains the code used for model explainability presented in the
 
 The code is provided for both transparency and results reproducibility.
 
-To rerun all models data run:  
+To rerun all models:  
 
 ```
 python models/model_runner.py
