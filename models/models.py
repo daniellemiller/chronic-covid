@@ -122,14 +122,14 @@ class Model():
         data_dir = os.path.join(self.out_dir, self.name)
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
-
+        order = importances.groupby('feature_name')['importance'].mean().sort_values(ascending=False).index
         with sns.plotting_context("talk"):
             ax, fig = plt.subplots(figsize=(10,5))
-            sns.barplot(x='feature_name', y='importance', data=importances, palette='Oranges')
+            sns.barplot(x='importance', y='feature_name', data=importances, palette='Oranges', order=order)
             _ = plt.xticks(rotation=65)
             plt.xlabel('')
             plt.ylabel("Importance")
-            plt.savefig(os.path.join(data_dir, 'importance.png'), dpi=300, bbox_inches='tight')
+            plt.savefig(os.path.join(data_dir, 'importance.pdf'), bbox_inches='tight')
             plt.clf()
 
     def plot_shap_stats(self):
@@ -142,19 +142,19 @@ class Model():
         X = self.X.drop(columns=['patient'])
 
         shap.summary_plot(mdl_shape[1], X, plot_type='bar', show=False)
-        plt.savefig(os.path.join(data_dir, f'{self.name}_shap_mean.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(data_dir, f'{self.name}_shap_mean.pdf'), bbox_inches='tight')
         plt.clf()
 
         shap.summary_plot(mdl_shape[1], X, show=False)
-        plt.savefig(os.path.join(data_dir, f'{self.name}_shap.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(data_dir, f'{self.name}_shap.pdf'), bbox_inches='tight')
         plt.clf()
 
         shap.summary_plot(test_shap[1], X, plot_type='bar', show=False)
-        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap_mean.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap_mean.pdf'), bbox_inches='tight')
         plt.clf()
 
         shap.summary_plot(test_shap[1], X, show=False)
-        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(data_dir, f'LOPOCV_{self.name}_shap.pdf'), bbox_inches='tight')
         plt.clf()
 
 
